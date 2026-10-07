@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/*
+  Theme tokens.
+
+  Every colour in the app is a role ("surface", "ink-muted"), never a raw value.
+  Each role is a CSS variable with a light value (:root) and a dark value
+  ([data-theme="dark"]). Switching theme only flips the data-theme attribute on
+  <html>; no component needs to know which theme is active.
+*/
+:root {
+  color-scheme: light;
+
+  --canvas: #f4f2ec; /* page background */
+  --sidebar: #ebe7de;
+  --surface: #ffffff; /* cards, inputs, panels */
+  --surface-2: #ebe8df; /* board columns, table headers */
+  --line: #dedad0; /* borders and dividers */
+  --nav-active: #e2ddd1;
+  --chip: #e5e0d4; /* epic chips, point bubbles */
+
+  --ink: #1f1d1a; /* main text */
+  --ink-muted: #6b665c;
+  --ink-faint: #9a948a;
+
+  --accent: #234e7a; /* Create button, selected states */
+  --accent-ink: #ffffff; /* text on top of accent */
+
+  --success: #2f7a47;
+  --success-soft: #dcefe2;
+  --info: #2c5d8f;
+  --info-soft: #dbe6f5;
+  --warn: #a5560b;
+  --warn-soft: #fbe7cf;
+  --danger: #b3261e;
+
+  /* Issue type badges: S, T, B, Sp, st, and the epic icon */
+  --type-story: #2f7a47;
+  --type-task: #2c5d8f;
+  --type-bug: #b8322a;
+  --type-spike: #8a6d1d;
+  --type-subtask: #5d5a54;
+  --type-epic: #6b4fa0;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #151413;
+  --sidebar: #1b1a18;
+  --surface: #23221f;
+  --surface-2: #1d1c1a;
+  --line: #34322e;
+  --nav-active: #2e2c29;
+  --chip: #34322e;
+
+  --ink: #f1efe9;
+  --ink-muted: #a19c92;
+  --ink-faint: #6f6a62;
+
+  --accent: #8ab4e8;
+  --accent-ink: #10233a;
+
+  --success: #6cc08a;
+  --success-soft: #1f3a29;
+  --info: #8ab4e8;
+  --info-soft: #1f2f45;
+  --warn: #f0a85a;
+  --warn-soft: #3d2a14;
+  --danger: #f08a80;
+
+  --type-story: #2f7a47;
+  --type-task: #2c5d8f;
+  --type-bug: #b8322a;
+  --type-spike: #8a6d1d;
+  --type-subtask: #5d5a54;
+  --type-epic: #6b4fa0;
+}
+
+/*
+  "@theme inline" turns each variable into Tailwind utilities:
+  --color-surface becomes bg-surface, text-surface, border-surface, and so on.
+  "inline" makes the utility use var(--surface) directly, so it follows the
+  theme switch at runtime.
+*/
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-nav-active: var(--nav-active);
+  --color-chip: var(--chip);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-type-story: var(--type-story);
+  --color-type-task: var(--type-task);
+  --color-type-bug: var(--type-bug);
+  --color-type-spike: var(--type-spike);
+  --color-type-subtask: var(--type-subtask);
+  --color-type-epic: var(--type-epic);
+}
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* Lets components use dark: when a token is not enough (rare). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

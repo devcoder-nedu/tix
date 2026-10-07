@@ -1,0 +1,26 @@
+// Shared TypeScript rules. Every package's tsconfig.json "extends" this file,
+// so core, web, server, cli and mcp all type-check the same way.
+{
+  "compilerOptions": {
+    // Modern JavaScript output; Node 24 and current browsers support it.
+    "target": "ES2023",
+    "module": "ESNext",
+    // "bundler" resolves imports the way Vite (and other bundlers) do.
+    "moduleResolution": "bundler",
+
+    // Strictness: catch mistakes at compile time instead of at runtime.
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Each file must compile on its own (required by Vite's fast transpiler).
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+
+    // Don't type-check library .d.ts files; faster and avoids noise from deps.
+    "skipLibCheck": true
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Browser code: include the DOM types (document, window, ...).
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // Turn JSX (<div>) into React calls using the modern automatic runtime.
+    "jsx": "react-jsx",
+    // Vite's types: lets TypeScript understand `import "./x.css"` and import.meta.env.
+    "types": ["vite/client"],
+    // Vite does the actual compiling; tsc only checks types.
+    "noEmit": true
+  },
+  "include": ["src", "vite.config.ts"]
+}
