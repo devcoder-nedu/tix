@@ -21,9 +21,6 @@ function Placeholder({
   );
 }
 
-export const PastSprintsPage = () => (
-  <Placeholder eyebrow="My sprint" title="Past sprints" step="Past sprints" />
-);
 export const InsightsSettingsPage = () => (
   <Placeholder eyebrow="Settings" title="Insights" step="Local AI insights" />
 );

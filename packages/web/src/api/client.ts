@@ -6,6 +6,7 @@ import { resetDb } from "./fake/db";
 import { fakeApi } from "./fake/fakeApi";
 import type {
   BacklogItem,
+  Insight,
   Issue,
   IssueEvent,
   IssuePatch,
@@ -17,6 +18,7 @@ import type {
   Sprint,
   Rollover,
   SprintInput,
+  SprintResult,
   SprintSummary,
   Velocity,
 } from "./types";
@@ -57,6 +59,10 @@ export interface TixApi {
   startSprint(id: number): Promise<Sprint>;
   getVelocity(): Promise<Velocity>;
   getSprintSummary(id: number): Promise<SprintSummary>;
+  /** Committed against done for every completed sprint, oldest first (the velocity chart). */
+  listSprintResults(): Promise<SprintResult[]>;
+  /** The saved write up of a kind for a sprint, or null. */
+  getInsight(kind: Insight["kind"], sprintId: number): Promise<Insight | null>;
   /**
    * Done issues get outcome "done"; each unfinished issue goes to the next sprint
    * ("carried_over", created if needed) or the backlog ("returned"). Status and

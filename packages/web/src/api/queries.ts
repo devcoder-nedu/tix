@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type IssueFilter } from "./client";
 import type {
   BacklogItem,
+  Insight,
   Issue,
   IssuePatch,
   NewIssue,
@@ -26,6 +27,8 @@ export const queryKeys = {
   sprintItems: (sprintId: number) => ["sprintItems", sprintId] as const,
   velocity: ["velocity"] as const,
   sprintSummary: (id: number) => ["sprintSummary", id] as const,
+  sprintResults: ["sprintResults"] as const,
+  insight: (kind: string, sprintId: number) => ["insight", kind, sprintId] as const,
   sprints: ["sprints"] as const,
   settings: ["settings"] as const,
 };
@@ -70,6 +73,15 @@ export const useVelocity = () =>
 
 export const useSprintSummary = (id: number) =>
   useQuery({ queryKey: queryKeys.sprintSummary(id), queryFn: () => api.getSprintSummary(id) });
+
+export const useSprintResults = () =>
+  useQuery({ queryKey: queryKeys.sprintResults, queryFn: api.listSprintResults });
+
+export const useInsight = (kind: Insight["kind"], sprintId: number) =>
+  useQuery({
+    queryKey: queryKeys.insight(kind, sprintId),
+    queryFn: () => api.getInsight(kind, sprintId),
+  });
 
 export const useSettings = () =>
   useQuery({ queryKey: queryKeys.settings, queryFn: api.getSettings });

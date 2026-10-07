@@ -166,8 +166,15 @@ export interface SprintSummary {
   unfinished: number;
   percent: number; // done as a share of committed, 0 to 100
   bySpace: { spaceId: number; committed: number; done: number }[];
-  finishedIssues: Issue[];
-  unfinishedIssues: Issue[];
+  finishedIssues: SprintIssueResult[];
+  unfinishedIssues: SprintIssueResult[];
+}
+
+/** An issue as it ended a sprint: what it was worth at the start and where it went. */
+export interface SprintIssueResult extends Issue {
+  pointsAtStart: number | null;
+  outcome: Outcome | null; // null while the sprint is running
+  movedToSprint: number | null; // sprint number, when carried over
 }
 
 /** Where one unfinished issue goes when its sprint completes. */

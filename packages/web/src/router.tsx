@@ -7,8 +7,9 @@ import { BoardPage } from "./pages/board/BoardPage";
 import { IssueDetailPage } from "./pages/issue/IssueDetailPage";
 import { PlanPage } from "./pages/plan/PlanPage";
 import { SpaceDetailPage } from "./pages/spaces/SpaceDetailPage";
+import { PastSprintsPage } from "./pages/sprints/PastSprintsPage";
 import { SpacesPage } from "./pages/spaces/SpacesPage";
-import { InsightsSettingsPage, NotFoundPage, PastSprintsPage } from "./pages/Placeholder";
+import { InsightsSettingsPage, NotFoundPage } from "./pages/Placeholder";
 
 export const router = createBrowserRouter([
   {

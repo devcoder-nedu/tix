@@ -16,6 +16,7 @@ import {
   type Sprint,
   type SprintInput,
   type SprintIssue,
+  type SprintIssueResult,
   type SprintResult,
 } from "../types";
 import { addDays, sprintEndDate } from "../../lib/dates";
@@ -180,6 +181,17 @@ function sprintRows(sprintId: number) {
 }
 
 /** Running sprint: done means status done now. Completed sprint: the recorded outcome. */
+function asResult({ row, issue }: { row: SprintIssue; issue: Issue }): SprintIssueResult {
+  return {
+    ...issue,
+    pointsAtStart: row.pointsAtStart,
+    outcome: row.outcome,
+    movedToSprint: row.movedTo
+      ? (db.sprints.find((s) => s.id === row.movedTo)?.number ?? null)
+      : null,
+  };
+}
+
 function isDone(sprint: Sprint, row: SprintIssue, issue: Issue) {
   return sprint.state === "completed" ? row.outcome === "done" : issue.status === "done";
 }
@@ -565,9 +577,27 @@ export const fakeApi: TixApi = {
           done: points(finished.filter(({ issue }) => issue.spaceId === spaceId)),
         }))
         .sort((a, b) => b.committed - a.committed),
-      finishedIssues: finished.map(({ issue }) => issue),
-      unfinishedIssues: unfinished.map(({ issue }) => issue),
+      finishedIssues: finished.map(asResult),
+      unfinishedIssues: unfinished.map(asResult),
     });
+  },
+
+  async listSprintResults() {
+    await delay();
+    return copy(
+      db.sprints
+        .filter((s) => s.state === "completed")
+        .sort((a, b) => a.number - b.number)
+        .map(sprintResult),
+    );
+  },
+
+  async getInsight(kind, sprintId) {
+    await delay();
+    const saved = db.insights
+      .filter((i) => i.kind === kind && i.sprintId === sprintId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return copy(saved[0] ?? null);
   },
 
   async completeSprint(id, moves) {

@@ -3,7 +3,7 @@
 // every screen looks the same and a design change happens in one place.
 
 import { Zap } from "lucide-react";
-import type { IssueType, Points, Status } from "../api/types";
+import type { IssueType, Status } from "../api/types";
 import { STATUS_LABEL, TYPE_LABEL } from "../api/types";
 
 const TYPE_STYLE: Record<IssueType, { letter: string; className: string }> = {
@@ -28,7 +28,7 @@ export function TypeBadge({ type }: { type: IssueType }) {
 }
 
 /** Grey bubble with the points; a dashed "?" when the issue still needs an estimate. */
-export function PointsBubble({ points }: { points: Points | null }) {
+export function PointsBubble({ points }: { points: number | null }) {
   if (points === null) {
     return (
       <span
