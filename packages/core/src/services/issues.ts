@@ -6,7 +6,16 @@ import { generateKeyBetween } from "fractional-indexing";
 import { and, asc, desc, eq, inArray, isNull, max, ne, notInArray, sql } from "drizzle-orm";
 import type { Conn } from "../db.ts";
 import { TixError } from "../errors.ts";
-import { issueEvents, issues, spaces, sprintIssues, sprints, type ACTORS } from "../schema.ts";
+import { issueEvents, issues, spaces, sprintIssues, sprints } from "../schema.ts";
+import {
+  live,
+  logEvent,
+  nowIso,
+  WORK_TYPES,
+  type ChangeOptions,
+  type Issue,
+  type IssueEvent,
+} from "./shared.ts";
 import {
   issuePatchInput,
   newIssueInput,
@@ -15,19 +24,7 @@ import {
   type NewIssueInput,
 } from "../validation.ts";
 
-export type Issue = typeof issues.$inferSelect;
-export type IssueEvent = typeof issueEvents.$inferSelect;
-type Actor = (typeof ACTORS)[number];
 type IssueType = Issue["type"];
-
-/** Who is making a change; MCP calls pass "claude" so the activity log says so. */
-export interface ChangeOptions {
-  actor?: Actor;
-}
-
-const nowIso = () => new Date().toISOString();
-const live = isNull(issues.deletedAt);
-const WORK_TYPES: IssueType[] = ["story", "task", "bug", "spike"];
 
 // ---- lookups
 
@@ -53,21 +50,6 @@ export function findIssue(conn: Conn, key: string): Issue {
       .get();
   if (!issue) throw new TixError(`No issue with key ${key}`, 404);
   return issue;
-}
-
-function logEvent(
-  conn: Conn,
-  issueId: number,
-  kind: IssueEvent["kind"],
-  from: unknown,
-  to: unknown,
-  actor: Actor = "me",
-) {
-  const text = (v: unknown) => (v === null || v === undefined ? null : String(v));
-  conn
-    .insert(issueEvents)
-    .values({ issueId, kind, fromValue: text(from), toValue: text(to), actor, at: nowIso() })
-    .run();
 }
 
 // ---- rules
@@ -267,7 +249,7 @@ export function searchIssues(conn: Conn, text: string, limit = 8): Issue[] {
 
 // ---- writes
 
-export function createIssue(conn: Conn, input: NewIssueInput): Issue {
+export function createIssue(conn: Conn, input: NewIssueInput, opts: ChangeOptions = {}): Issue {
   const values = parse(newIssueInput, input);
   return conn.transaction((tx) => {
     checkParent(tx, values.type, values.spaceId, values.parentId);
@@ -299,7 +281,7 @@ export function createIssue(conn: Conn, input: NewIssueInput): Issue {
       issue.id,
       "created",
       null,
-      issue.createdBy === "claude" ? "via Claude" : "from the Create form",
+      opts.source ?? (issue.createdBy === "claude" ? "via Claude" : "from the Create form"),
       issue.createdBy,
     );
 

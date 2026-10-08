@@ -54,7 +54,41 @@ export const issuePatchInput = z
   .partial() // every field optional: send only what changed
   .strict(); // but nothing unknown: a typo like "statsu" is an error, not ignored
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must look like 2026-10-06");
+
+export const sprintInput = z.object({
+  goal: z.string().trim().max(300).default(""),
+  lengthWeeks: z.literal([1, 2], { error: "A sprint is 1 or 2 weeks long" }),
+  startDate: isoDate,
+  capacity: z
+    .number()
+    .int("Capacity must be a whole number of points")
+    .min(0, "Capacity must be a whole number of points"),
+});
+export const sprintPatchInput = sprintInput.partial().strict();
+
+/** Where each unfinished issue goes when its sprint completes, by key. */
+export const rolloverInput = z.record(z.string(), z.enum(["next", "backlog"]));
+
+export const settingsInput = z
+  .object({
+    theme: z.enum(["system", "light", "dark"]),
+    ollamaUrl: z.url({ error: "Ollama address must be a URL like http://localhost:11434" }),
+    ollamaModel: z.string().trim().min(1, "Choose a model"),
+    capacityDefault: z.number().int().min(0),
+    insightSprintReview: z.boolean(),
+    insightCheckIn: z.boolean(),
+    insightPlanningHint: z.boolean(),
+    insightPatternReport: z.boolean(),
+  })
+  .partial()
+  .strict();
+
 export type NewSpaceInput = z.input<typeof newSpaceInput>;
+export type SprintInput = z.input<typeof sprintInput>;
+export type SprintPatch = z.input<typeof sprintPatchInput>;
+export type Rollover = z.output<typeof rolloverInput>[string];
+export type SettingsPatch = z.input<typeof settingsInput>;
 export type NewIssueInput = z.input<typeof newIssueInput>;
 export type IssuePatch = z.input<typeof issuePatchInput>;
 

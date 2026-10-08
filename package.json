@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @tix/web dev",
+    "dev": "pnpm --parallel --filter @tix/server --filter @tix/web dev",
     "build": "pnpm --filter @tix/web build",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",

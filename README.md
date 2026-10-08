@@ -8,17 +8,18 @@ No accounts, no cloud, no paid APIs.
 
 ## Status
 
-| Part                              | State                     |
-| --------------------------------- | ------------------------- |
-| Front end: all ten screens        | Working, on a fake API    |
-| Ollama status and settings        | Working (live check)      |
-| Core services and SQLite database | Planned (`packages/core`) |
-| HTTP server, `tix` CLI            | Planned                   |
-| MCP server for an AI assistant    | Planned                   |
-| Local AI insights through Ollama  | Planned                   |
+| Part                              | State                               |
+| --------------------------------- | ----------------------------------- |
+| Front end: all ten screens        | Working (`packages/web`)            |
+| Core services and SQLite database | Working, tested (`packages/core`)   |
+| HTTP server                       | Working, tested (`packages/server`) |
+| `tix` CLI, including `tix start`  | Working, tested (`packages/cli`)    |
+| Ollama status and settings        | Working (live check)                |
+| MCP server for an AI assistant    | Planned                             |
+| Local AI insights through Ollama  | Planned                             |
 
-The front end was built first against an in-browser fake that implements the same contract the
-real server will. Swapping in the server changes one line (see [The API contract](#the-api-contract)).
+The front end was built first against an in-browser fake, then switched to the real server by
+changing one line (see [The API contract](#the-api-contract)).
 
 ## Getting started
 
@@ -26,16 +27,19 @@ Requirements: **Node.js 24 LTS** and **pnpm** (the repo pins its pnpm version in
 
 ```sh
 pnpm install
+pnpm build          # once: builds the web app the server serves
+tix start           # after installing the command (below): opens http://localhost:4000
+```
+
+For development, run the API server and Vite together:
+
+```sh
 pnpm dev
 ```
 
-Open the address Vite prints (usually http://localhost:5173). The app starts with demo data:
-eight spaces, three completed sprints of history, a running Sprint 4 and a planned Sprint 5.
-Changes are saved in the browser's localStorage. To start over, run this in the browser console:
-
-```js
-tixReset();
-```
+Then open http://localhost:5173. Vite reloads the page on every save and forwards `/api` to the
+server on port 4000. `node --watch` restarts the server when its code changes. Data lives in
+`~/.tix/tix.db`; set `TIX_DB` to work on a scratch copy.
 
 ### Scripts
 
@@ -47,8 +51,38 @@ tixReset();
 | `pnpm lint`         | Run ESLint over the repo                                |
 | `pnpm format`       | Format every file with Prettier                         |
 | `pnpm format:check` | Check formatting without changing files                 |
+| `pnpm test`         | Run every package's tests (Vitest)                      |
+| `pnpm db:generate`  | After editing `schema.ts`: write the next SQL migration |
 
-Run `pnpm typecheck && pnpm lint && pnpm format:check` before committing.
+Run `pnpm typecheck && pnpm lint && pnpm format:check && pnpm test` before committing.
+
+### The `tix` command
+
+Make `tix` available in any terminal (once):
+
+```sh
+pnpm add --global link:$PWD/packages/cli   # run from the repo root
+```
+
+This links the `tix` command into pnpm's global bin folder. It is a link to the source, so
+edits apply without reinstalling. Undo with `pnpm remove --global @tix/cli`.
+
+Then:
+
+```sh
+tix seed                                    # add JOB, FR, GCP, DSAI, AWS, CODE
+tix create --space CODE --title "Build Tix board"            # prints CODE-1
+tix create -s FR -t "Book the DELF exam" --points 1 -c "Date chosen" -c "Fee paid"
+tix list                                    # open issues (--space FR, --status done, --all)
+tix move CODE-1 in-progress                 # todo, in-progress, review, done
+tix move FR-1 --space GCP                   # new key GCP-n; FR-1 keeps working
+tix show CODE-1                             # criteria, subtasks, activity
+tix space add CERT Certifications --color "#1aa3a3"
+tix --help                                  # every command and option
+```
+
+Data lives in `~/.tix/tix.db`. Set `TIX_DB=/some/other.db` to use another file, which is how
+the tests avoid touching your real data.
 
 ## Tech stack
 
@@ -83,14 +117,23 @@ Terminal (tix CLI) ────────────────────�
 AI assistant (MCP server, stdio) ───────────┘          └──────────> Ollama (localhost:11434)
 ```
 
-### Today
+All of it is built except the MCP server and Ollama insights.
+
+Inside the web app, dependencies point one way:
 
 ```
-Screens ──> queries.ts (TanStack Query hooks) ──> client.ts (TixApi) ──> fake/fakeApi.ts ──> localStorage
+Screens ──> queries.ts (TanStack Query hooks) ──> client.ts (TixApi) ──> httpApi.ts ──> /api
 ```
 
-Dependencies point one way. Screens never call the API directly; they use hooks. Hooks only know
-the `TixApi` interface. Only `client.ts` knows which implementation is in use.
+Screens never call the API directly; they use hooks. Hooks only know the `TixApi` interface.
+Only `client.ts` knows which implementation is in use.
+
+### Security
+
+Tix has no logins, so the server protects itself in three ways: it listens on 127.0.0.1 only
+(never reachable from other devices), answers only requests whose `Host` is localhost (blocks
+DNS rebinding), and accepts writes only as JSON (other websites cannot send that without the
+browser asking first). The Ollama check only reaches localhost.
 
 ## Repository layout
 
@@ -101,6 +144,15 @@ tix/
   tsconfig.base.json        strict TypeScript rules shared by all packages
   eslint.config.js          lint rules for the whole repo
   packages/
+    core/                   all rules and the database: no HTTP, no UI
+      drizzle/              SQL migrations written by drizzle-kit
+      src/
+        schema.ts           the seven tables and the rules the database enforces
+        db.ts               openDb(): WAL, foreign keys, migrations on start
+        validation.ts       zod checks for everything arriving from outside
+        services/           spaces, issues, sprints, settings (each with tests)
+    server/                 Fastify: one route per core service, serves the built web app
+    cli/                    the tix command
     web/                    the React app
       index.html            sets the theme before React loads (no flash)
       src/
@@ -111,12 +163,9 @@ tix/
         api/
           types.ts          domain types, mirroring the seven database tables
           client.ts         TixApi: the contract every screen relies on
-          errors.ts         ApiError, with the HTTP status the server will use
+          httpApi.ts        TixApi over HTTP: one fetch per server route
+          errors.ts         ApiError, carrying the server's status and message
           queries.ts        TanStack Query hooks: reads, changes, optimistic updates
-          fake/
-            seed.ts         demo data, dates relative to today
-            db.ts           the tables in memory, saved to localStorage
-            fakeApi.ts      TixApi implemented in the browser, with the real rules
         components/         shared pieces: badges, pills, form styles, click to edit text
         create/             the Create issue dialog, openable from anywhere
         layout/             sidebar, top bar (Page), app frame
@@ -180,16 +229,16 @@ From that history Tix derives, with no extra columns:
 
 ### The API contract
 
-`api/client.ts` defines `TixApi`, the list of every operation a screen can ask for. The fake in
-`api/fake/` implements it today and applies the same rules the core services will. When the
-server exists, an HTTP client implements the same interface and replaces this line:
+`api/client.ts` defines `TixApi`, the list of every operation a screen can ask for. The screens
+were built against an in-browser fake; switching to the real server was this one line:
 
 ```ts
-export const api: TixApi = fakeApi;
+export const api: TixApi = httpApi;
 ```
 
-The fake waits 120 ms per call so loading states show during development, and returns copies so
-a screen can never change the data without going through the rules.
+`httpApi.ts` turns the server's `{ "error": "..." }` replies into `ApiError`, so screens show the
+same messages the CLI prints. `web/src/api/types.ts` mirrors core's types by hand for now;
+sharing them directly is a planned cleanup.
 
 ### Data fetching and caching
 
@@ -245,8 +294,7 @@ while typing in a field.
 ### Local AI status
 
 The sidebar and the Insights settings screen ask Ollama (`/api/tags`) whether it is running and
-which models it has. Until the server exists the browser makes that call; Ollama accepts requests
-from localhost pages by default. "Local AI ready" means Ollama answers and has the chosen model.
+which models it has, through the server's `/api/ollama` route. "Local AI ready" means Ollama answers and has the chosen model.
 
 ## Extending Tix
 
@@ -255,10 +303,15 @@ and add its route in `router.tsx`.
 
 **Add an API operation:**
 
-1. Add any new types to `api/types.ts`.
-2. Add the method to `TixApi` in `api/client.ts`.
-3. Implement it in `api/fake/fakeApi.ts`, throwing `ApiError` for rule violations.
-4. Add a hook in `api/queries.ts` and invalidate whatever the change affects.
+1. Write the service in `packages/core/src/services/`, throwing `TixError` for rule violations,
+   and test it there.
+2. Add a route in `packages/server/src/app.ts` and a test in `app.test.ts`.
+3. Add the method to `TixApi` (`web/src/api/client.ts`) and `httpApi.ts`, and any types to
+   `web/src/api/types.ts`.
+4. Add a hook in `web/src/api/queries.ts` and invalidate whatever the change affects.
+
+**Change the schema:** edit `schema.ts`, run `pnpm db:generate`, commit the new file in
+`packages/core/drizzle`. Every database upgrades itself the next time it is opened.
 
 **Conventions:** colours only through theme tokens; shared UI in `components/`; one job per file;
 derive values instead of storing them in state where possible; comments explain why, not what.
@@ -267,10 +320,10 @@ derive values instead of storing them in state where possible; comments explain 
 
 | Phase  | Scope                                                                    | State   |
 | ------ | ------------------------------------------------------------------------ | ------- |
-| 1      | Core services, SQLite schema and migrations, CLI                         | Planned |
-| 2      | HTTP API; Backlog, Issue detail, Create, All spaces, Space detail        | UI done |
-| 3      | Sprints: Board, Plan next sprint, Complete sprint                        | UI done |
-| 4      | Past sprints, velocity chart, slip tags, activity log                    | UI done |
+| 1      | Core services, SQLite schema and migrations, CLI                         | Done    |
+| 2      | HTTP API; Backlog, Issue detail, Create, All spaces, Space detail        | Done    |
+| 3      | Sprints: Board, Plan next sprint, Complete sprint                        | Done    |
+| 4      | Past sprints, velocity chart, slip tags, activity log                    | Done    |
 | 5      | MCP server so an AI assistant can draft and create stories               | Planned |
 | 6      | Local AI insights through Ollama: sprint review, check in, planning hint | Planned |
 | Finish | `tix backup`, start at login                                             | Planned |
@@ -279,4 +332,3 @@ derive values instead of storing them in state where possible; comments explain 
 
 - The production bundle is about 870 KB, most of it Recharts. It loads from local disk, so this
   does not matter yet; lazy loading the Past sprints route would split it out if needed.
-- Demo dates are relative to today, so Sprint 4 always looks like it started four days ago.

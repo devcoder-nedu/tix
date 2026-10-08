@@ -15,9 +15,9 @@ export default defineConfig([
     extends: [js.configs.recommended, tseslint.configs.recommended],
   },
 
-  // Core runs in Node: it may use process, and must not use window or document.
+  // Core, server and CLI run in Node: they may use process, not window or document.
   {
-    files: ["packages/core/**/*.ts"],
+    files: ["packages/{core,server,cli}/**/*.ts"],
     languageOptions: {
       globals: globals.node,
     },

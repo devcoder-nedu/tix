@@ -1,9 +1,8 @@
 // The contract between the screens and the data. Screens only ever call `api`.
-// Today `api` is the in-browser fake; later an HTTP client that calls the
-// Fastify server implements the same interface and replaces it here.
+// `api` calls the Fastify server (httpApi.ts). Anything that implements this
+// interface can replace it, for example a fake in tests.
 
-import { resetDb } from "./fake/db";
-import { fakeApi } from "./fake/fakeApi";
+import { httpApi } from "./httpApi";
 import type {
   BacklogItem,
   Insight,
@@ -81,12 +80,4 @@ export interface TixApi {
 
 export { ApiError } from "./errors";
 
-export const api: TixApi = fakeApi;
-
-// Development helper: run `tixReset()` in the browser console to restore the mockup data.
-if (import.meta.env.DEV) {
-  (window as unknown as { tixReset: () => void }).tixReset = () => {
-    resetDb();
-    location.reload();
-  };
-}
+export const api: TixApi = httpApi;
