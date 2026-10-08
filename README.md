@@ -15,7 +15,7 @@ No accounts, no cloud, no paid APIs.
 | HTTP server                       | Working, tested (`packages/server`) |
 | `tix` CLI, including `tix start`  | Working, tested (`packages/cli`)    |
 | Ollama status and settings        | Working (live check)                |
-| MCP server for an AI assistant    | Planned                             |
+| MCP server for an AI assistant    | Working, tested (`packages/mcp`)    |
 | Local AI insights through Ollama  | Planned                             |
 
 The front end was built first against an in-browser fake, then switched to the real server by
@@ -101,8 +101,20 @@ the tests avoid touching your real data.
 | Icons and fonts | lucide-react, IBM Plex Sans and Mono    | Bundled locally; nothing loads from a CDN                                              |
 | Quality         | ESLint 10, Prettier 3                   | Consistent, reviewable code                                                            |
 
-Planned for the back end: SQLite through better-sqlite3 and Drizzle ORM, Fastify, zod, Commander,
-the MCP SDK, Vitest and Ollama.
+Back end:
+
+| Concern    | Choice                      | Why                                                         |
+| ---------- | --------------------------- | ----------------------------------------------------------- |
+| Database   | SQLite (better-sqlite3)     | One local file, fast, nothing to install or run             |
+| Schema     | Drizzle ORM and drizzle-kit | Typed queries; migrations generated from `schema.ts`        |
+| Validation | zod 4                       | Every input from outside is checked once, with clear errors |
+| HTTP       | Fastify 5                   | The API for the web app; also serves the built app          |
+| CLI        | Commander 15                | Argument parsing and help for `tix`                         |
+| Assistant  | MCP SDK                     | Lets an AI assistant app call Tix tools over stdio          |
+| Tests      | Vitest 5                    | Fast tests for every package                                |
+
+Node 24 runs the TypeScript files directly (type stripping), so the back end has no build step.
+Planned: Ollama for local AI insights.
 
 ## Architecture
 
@@ -117,7 +129,7 @@ Terminal (tix CLI) ────────────────────�
 AI assistant (MCP server, stdio) ───────────┘          └──────────> Ollama (localhost:11434)
 ```
 
-All of it is built except the MCP server and Ollama insights.
+All of it is built except the Ollama insights.
 
 Inside the web app, dependencies point one way:
 
@@ -153,6 +165,9 @@ tix/
         services/           spaces, issues, sprints, settings (each with tests)
     server/                 Fastify: one route per core service, serves the built web app
     cli/                    the tix command
+    mcp/                    MCP server: nine tools for an AI assistant app
+  skill/
+    SKILL.md                instructions that teach the assistant to write good stories
     web/                    the React app
       index.html            sets the theme before React loads (no flash)
       src/
@@ -179,6 +194,47 @@ tix/
           spaces/           All spaces, Space detail, New space
           sprints/          Past sprints and the velocity chart
 ```
+
+## Connecting an AI assistant (MCP)
+
+`packages/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server. A desktop
+assistant app that supports MCP starts it as a local program and talks to it over stdin and
+stdout, so nothing leaves the Mac.
+
+| Tool            | What it does                                                        |
+| --------------- | ------------------------------------------------------------------- |
+| `list_spaces`   | Spaces with keys, epics and open counts                             |
+| `search_issues` | Text and filters: space, status, sprint (or backlog), type          |
+| `get_issue`     | One issue with criteria, children and history                       |
+| `create_issues` | Create approved drafts, all or none                                 |
+| `update_issue`  | Change fields                                                       |
+| `move_issue`    | Change status or sprint                                             |
+| `split_issue`   | Split a big story; keep the original or close it without its points |
+| `get_sprint`    | A sprint with points by space, capacity and velocity                |
+| `plan_sprint`   | Add or remove issues in the next sprint                             |
+
+There is no delete tool on purpose: deleting stays a manual action in the app. Everything the
+assistant creates or changes is recorded as the assistant's work and tagged in the app.
+
+Register it in the assistant app's MCP configuration (`mcpServers`), then restart the app:
+
+```json
+{
+  "mcpServers": {
+    "tix": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/tix/packages/mcp/src/index.ts"]
+    }
+  }
+}
+```
+
+Use absolute paths, including for `node` (`which node` prints it). Apps started from the Dock
+do not read your shell profile, so a plain `node` is often not found there.
+
+`skill/SKILL.md` teaches the assistant the house rules: show drafts and create only after a yes,
+pick the space from context and never invent one, user story format with 2 to 5 testable
+criteria, the estimation guide (split anything over 8), and planning near velocity.
 
 ## Domain model
 
@@ -324,7 +380,7 @@ derive values instead of storing them in state where possible; comments explain 
 | 2      | HTTP API; Backlog, Issue detail, Create, All spaces, Space detail        | Done    |
 | 3      | Sprints: Board, Plan next sprint, Complete sprint                        | Done    |
 | 4      | Past sprints, velocity chart, slip tags, activity log                    | Done    |
-| 5      | MCP server so an AI assistant can draft and create stories               | Planned |
+| 5      | MCP server so an AI assistant can draft and create stories               | Done    |
 | 6      | Local AI insights through Ollama: sprint review, check in, planning hint | Planned |
 | Finish | `tix backup`, start at login                                             | Planned |
 
