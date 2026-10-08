@@ -38,8 +38,12 @@ function query(params: Record<string, string | number | null | undefined>): stri
 
 export const httpApi: TixApi = {
   listSpaces: () => get("/spaces"),
+  listArchivedSpaces: () => get("/spaces?archived=true"),
   getSpace: (key) => get(`/spaces/${enc(key)}`),
   createSpace: (input) => post("/spaces", input),
+  archiveSpace: (key) => post(`/spaces/${enc(key)}/archive`),
+  restoreSpace: (key) => post(`/spaces/${enc(key)}/restore`),
+  deleteSpace: (key) => request("DELETE", `/spaces/${enc(key)}`),
 
   listIssues: (filter: IssueFilter = {}) => get(`/issues${query({ ...filter })}`),
   getIssue: (key) => get(`/issues/${enc(key)}`),

@@ -2,6 +2,9 @@
 // route, no open port, against a fresh in-memory database.
 
 import { openDb } from "@tix/core";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "./app.ts";
 
@@ -77,6 +80,32 @@ describe("API", () => {
   });
 });
 
+describe("spaces", () => {
+  it("rejects a duplicate name, archives, restores and deletes", async () => {
+    await send("POST", "/api/spaces", { key: "FR", name: "French", color: "#3b74d6" });
+    const dup = await send("POST", "/api/spaces", {
+      key: "FREN",
+      name: "french",
+      color: "#3b74d6",
+    });
+    expect(dup.statusCode).toBe(409);
+    expect(dup.json().error).toBe("A space named French already exists (FR)");
+
+    expect((await send("POST", "/api/spaces/FR/archive")).json().archived).toBe(true);
+    expect((await get("/api/spaces")).json()).toEqual([]);
+    expect((await get("/api/spaces?archived=true")).json()[0].key).toBe("FR");
+    expect((await send("POST", "/api/spaces/FR/restore")).json().archived).toBe(false);
+
+    const del = await app.inject({
+      method: "DELETE",
+      url: "/api/spaces/FR",
+      headers: { host: "localhost:4000" },
+    });
+    expect(del.statusCode).toBe(204);
+    expect((await get("/api/spaces/FR")).statusCode).toBe(404);
+  });
+});
+
 describe("safety", () => {
   it("refuses requests not addressed to localhost (DNS rebinding)", async () => {
     const res = await app.inject({
@@ -104,5 +133,33 @@ describe("safety", () => {
       running: false,
       models: [],
     });
+  });
+});
+
+describe("serving the web app", () => {
+  it("serves files built after start, sends pages index.html, and 404s missing files", async () => {
+    const dist = mkdtempSync(join(tmpdir(), "tix-dist-"));
+    try {
+      mkdirSync(join(dist, "assets"));
+      writeFileSync(join(dist, "index.html"), "<!doctype html><title>Tix</title>");
+      writeFileSync(join(dist, "assets", "old-1.js"), "console.log(1)");
+      const web = buildApp({ db: openDb(":memory:"), webDist: dist });
+      const at = (url: string) =>
+        web.inject({ method: "GET", url, headers: { host: "localhost:4000" } });
+
+      await web.ready(); // finish starting first, as `tix start` does with listen()
+      // A rebuild while the server runs: a new hashed file appears.
+      writeFileSync(join(dist, "assets", "new-2.js"), "console.log(2)");
+      const fresh = await at("/assets/new-2.js");
+      expect(fresh.statusCode).toBe(200);
+      expect(fresh.headers["content-type"]).toMatch(/javascript/);
+
+      expect((await at("/backlog")).body).toContain("<title>Tix</title>"); // deep link
+      const missing = await at("/assets/gone-3.js");
+      expect(missing.statusCode).toBe(404); // not index.html: that is what made the page blank
+      expect(missing.headers["content-type"]).toMatch(/json/);
+    } finally {
+      rmSync(dist, { recursive: true, force: true });
+    }
   });
 });

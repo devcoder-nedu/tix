@@ -78,6 +78,9 @@ tix move CODE-1 in-progress                 # todo, in-progress, review, done
 tix move FR-1 --space GCP                   # new key GCP-n; FR-1 keeps working
 tix show CODE-1                             # criteria, subtasks, activity
 tix space add CERT Certifications --color "#1aa3a3"
+tix space archive CERT                      # hide it; issues and history stay (needs no open issues)
+tix space restore CERT                      # bring it back (tix space list --archived shows them)
+tix space delete CERT                       # for good, only if it never had issues
 tix --help                                  # every command and option
 ```
 
@@ -261,6 +264,12 @@ Seven tables cover version 1. Epics, stories, tasks, bugs, spikes and subtasks a
 - **Points** are 1, 2, 3, 5, 8, 13 or empty. Epics and subtasks never carry points.
 - **Statuses:** To do, In progress, In review, Done. Every change writes an `issue_events` row.
 - **Delete** is soft (hidden, restorable for 30 days). An epic with open issues cannot be deleted.
+- **Space names are unique**, ignoring case, archived spaces included ("French" and "french"
+  clash). Keys are unique too and can never change.
+- **Spaces are archived, not deleted.** Archiving hides a space from the sidebar and pickers and
+  keeps its issues, keys and history; it needs no open story level issues first, and an archived
+  space takes no new issues. A space can be deleted for good only if it never handed out a key,
+  because then nothing (no issue, alias or past sprint) can refer to it.
 - **Backlog** is every open story level issue with no sprint, in rank order.
 
 ### Sprint lifecycle

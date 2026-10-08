@@ -4,8 +4,10 @@
 // the server and the MCP server can never disagree.
 
 import {
+  archiveSpace,
   createIssue,
   createSpace,
+  deleteSpace,
   findSpaceByKey,
   getIssue,
   listEvents,
@@ -13,6 +15,7 @@ import {
   listSpaces,
   moveIssueToSpace,
   openDb,
+  restoreSpace,
   defaultDbPath,
   TixError,
   updateIssue,
@@ -110,7 +113,46 @@ space
 space
   .command("list")
   .description("List spaces with open counts")
-  .action(() => run((db) => console.log(spaceTable(listSpaces(db)))));
+  .option("--archived", "list archived spaces instead")
+  .action((opts: { archived?: boolean }) =>
+    run((db) => console.log(spaceTable(listSpaces(db, { archived: !!opts.archived })))),
+  );
+
+space
+  .command("archive")
+  .description("Hide a space; keeps its issues and history (needs no open issues)")
+  .argument("<key>")
+  .action((key: string) =>
+    run((db) => {
+      const archived = archiveSpace(db, key);
+      console.log(
+        `Archived ${archived.key} (${archived.name}). Undo with: tix space restore ${archived.key}`,
+      );
+    }),
+  );
+
+space
+  .command("restore")
+  .description("Bring back an archived space")
+  .argument("<key>")
+  .action((key: string) =>
+    run((db) => {
+      const restored = restoreSpace(db, key);
+      console.log(`Restored ${restored.key} (${restored.name})`);
+    }),
+  );
+
+space
+  .command("delete")
+  .description("Delete a space for good (only one that never had issues)")
+  .argument("<key>")
+  .action((key: string) =>
+    run((db) => {
+      const target = findSpaceByKey(db, key);
+      deleteSpace(db, key);
+      console.log(`Deleted ${target.key} (${target.name})`);
+    }),
+  );
 
 // ---- issues
 

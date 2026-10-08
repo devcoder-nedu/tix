@@ -4,11 +4,13 @@
 import fastifyStatic from "@fastify/static";
 import {
   addToSprint,
+  archiveSpace,
   completeSprint,
   createIssue,
   createSprint,
   createSpace,
   deleteIssue,
+  deleteSpace,
   findIssue,
   getInsight,
   getIssue,
@@ -26,6 +28,7 @@ import {
   moveIssueToSpace,
   rankIssue,
   removeFromSprint,
+  restoreSpace,
   searchIssues,
   startSprint,
   TixError,
@@ -87,11 +90,24 @@ export function buildApp({ db, webDist, logger = false }: AppOptions) {
   });
 
   // ---- spaces
-  app.get("/api/spaces", async () => listSpaces(db));
+  // ?archived=true lists the archived ones instead.
+  app.get<{ Querystring: { archived?: string } }>("/api/spaces", async (req) =>
+    listSpaces(db, { archived: req.query.archived === "true" }),
+  );
   app.get<{ Params: Params }>("/api/spaces/:key", async (req) => getSpace(db, req.params.key));
   app.post("/api/spaces", async (req, reply) =>
     reply.code(201).send(createSpace(db, req.body as never)),
   );
+  app.post<{ Params: Params }>("/api/spaces/:key/archive", async (req) =>
+    archiveSpace(db, req.params.key),
+  );
+  app.post<{ Params: Params }>("/api/spaces/:key/restore", async (req) =>
+    restoreSpace(db, req.params.key),
+  );
+  app.delete<{ Params: Params }>("/api/spaces/:key", async (req, reply) => {
+    deleteSpace(db, req.params.key);
+    return reply.code(204).send();
+  });
 
   // ---- issues
   app.get<{ Querystring: Record<string, string> }>("/api/issues", async (req) =>
@@ -192,13 +208,18 @@ export function buildApp({ db, webDist, logger = false }: AppOptions) {
 
   // ---- the web app (production build)
   if (webDist && existsSync(join(webDist, "index.html"))) {
-    app.register(fastifyStatic, { root: webDist, wildcard: false });
-    // Any other page address (/backlog, /issue/FR-4) gets index.html; React Router takes it from there.
-    app.setNotFoundHandler((req, reply) =>
-      req.method === "GET"
-        ? reply.sendFile("index.html")
-        : reply.code(404).send({ error: "Not found" }),
-    );
+    // Files are looked up on disk for each request (wildcard), so a rebuild
+    // while the server runs is picked up. Built files have content hashes in
+    // their names (index-DpsPRmPC.js), so a list made at startup goes stale.
+    app.register(fastifyStatic, { root: webDist, wildcard: true });
+    // Page addresses (/backlog, /issue/FR-4) get index.html and React Router
+    // takes it from there. A missing file is a real 404: answering it with
+    // HTML would make the browser reject the "script" and show a blank page.
+    app.setNotFoundHandler((req, reply) => {
+      const isFile = /\.[a-z0-9]+$/i.test(req.url.split("?")[0]!) || req.url.startsWith("/assets/");
+      if (req.method === "GET" && !isFile) return reply.sendFile("index.html");
+      return reply.code(404).send({ error: "Not found" });
+    });
   }
 
   return app;

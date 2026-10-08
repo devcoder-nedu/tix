@@ -42,15 +42,23 @@ const sqlList = (values: readonly (string | number)[]) =>
 // both sort correctly as text and match what the UI already uses.
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
 
-export const spaces = sqliteTable("spaces", {
-  id: integer().primaryKey({ autoIncrement: true }),
-  key: text().notNull().unique(), // "FR"
-  name: text().notNull(),
-  color: text().notNull(),
-  description: text().notNull().default(""),
-  nextNumber: integer("next_number").notNull().default(1), // FR-15 follows FR-14
-  archived: integer({ mode: "boolean" }).notNull().default(false),
-});
+export const spaces = sqliteTable(
+  "spaces",
+  {
+    id: integer().primaryKey({ autoIncrement: true }),
+    key: text().notNull().unique(), // "FR"
+    name: text().notNull(),
+    color: text().notNull(),
+    description: text().notNull().default(""),
+    nextNumber: integer("next_number").notNull().default(1), // FR-15 follows FR-14
+    archived: integer({ mode: "boolean" }).notNull().default(false),
+  },
+  (t) => [
+    // No two spaces share a name, ignoring case ("French" and "french").
+    // Archived spaces count too, so restoring one can never clash.
+    uniqueIndex("spaces_name_unique").on(sql`lower(${t.name})`),
+  ],
+);
 
 export const sprints = sqliteTable(
   "sprints",

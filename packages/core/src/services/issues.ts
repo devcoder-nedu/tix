@@ -252,6 +252,10 @@ export function searchIssues(conn: Conn, text: string, limit = 8): Issue[] {
 export function createIssue(conn: Conn, input: NewIssueInput, opts: ChangeOptions = {}): Issue {
   const values = parse(newIssueInput, input);
   return conn.transaction((tx) => {
+    const space = tx.select().from(spaces).where(eq(spaces.id, values.spaceId)).get();
+    if (!space) throw new TixError("Space not found", 404);
+    if (space.archived)
+      throw new TixError(`${space.name} is archived; restore it to add issues`, 409);
     checkParent(tx, values.type, values.spaceId, values.parentId);
     checkPoints(values.type, values.points);
     checkSprint(tx, values.type, values.sprintId);

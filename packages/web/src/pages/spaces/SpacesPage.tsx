@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { useSpaces } from "../../api/queries";
+import { useArchivedSpaces, useRestoreSpace, useSpaces } from "../../api/queries";
 import type { SpaceSummary } from "../../api/types";
 import { SpaceDot } from "../../components/IssueBits";
 import { Pill } from "../../components/Pill";
@@ -86,6 +86,41 @@ function SpaceListRow({ space }: { space: SpaceSummary }) {
   );
 }
 
+/** Archived spaces, folded away at the bottom; each can be opened or restored. */
+function ArchivedSpaces() {
+  const { data: archived = [] } = useArchivedSpaces();
+  const restore = useRestoreSpace();
+  if (archived.length === 0) return null;
+  return (
+    <details className="mt-8">
+      <summary className="cursor-pointer text-sm font-semibold text-ink-muted hover:text-ink">
+        Archived spaces ({archived.length})
+      </summary>
+      <ul className="mt-3 overflow-hidden rounded-xl border border-line bg-surface">
+        {archived.map((s) => (
+          <li
+            key={s.id}
+            className="flex items-center gap-4 border-t border-line px-4 py-3 first:border-t-0"
+          >
+            <SpaceDot color={s.color} className="size-2.5" />
+            <Link to={`/spaces/${s.key}`} className="flex-1 truncate hover:underline">
+              {s.name} <span className="font-mono text-sm text-ink-muted">{s.key}</span>
+            </Link>
+            <button
+              onClick={() => restore.mutate(s.key)}
+              disabled={restore.isPending}
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              Restore
+            </button>
+          </li>
+        ))}
+      </ul>
+      {restore.error && <p className="mt-2 text-sm text-danger">{restore.error.message}</p>}
+    </details>
+  );
+}
+
 export function SpacesPage() {
   const { data: spaces = [], isPending } = useSpaces();
   const navigate = useNavigate();
@@ -152,6 +187,8 @@ export function SpacesPage() {
           </button>
         </div>
       )}
+
+      <ArchivedSpaces />
 
       {creating && (
         <NewSpaceDialog

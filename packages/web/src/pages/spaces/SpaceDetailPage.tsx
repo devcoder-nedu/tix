@@ -7,6 +7,7 @@ import { Pill } from "../../components/Pill";
 import { useCreateDialog } from "../../create/CreateIssueContext";
 import { Page } from "../../layout/Page";
 import { EpicSection } from "./EpicTree";
+import { SpaceActions } from "./SpaceActions";
 
 export function SpaceDetailPage() {
   const { key = "" } = useParams();
@@ -65,6 +66,7 @@ export function SpaceDetailPage() {
       }
       title={space.name}
     >
+      {space.archived && <SpaceActions space={space} />}
       <div className="mb-5 flex items-center gap-4">
         <span
           className="flex size-11 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"
@@ -85,12 +87,16 @@ export function SpaceDetailPage() {
         <Pill active={view === "list"} onClick={() => setView("list")}>
           List
         </Pill>
-        <button
-          onClick={() => createDialog.open({ spaceId: space.id, type: "epic" })}
-          className={secondaryButton}
-        >
-          New epic
-        </button>
+        {/* An archived space takes no new issues, so it offers no New epic. */}
+        {!space.archived && (
+          <button
+            onClick={() => createDialog.open({ spaceId: space.id, type: "epic" })}
+            className={secondaryButton}
+          >
+            New epic
+          </button>
+        )}
+        {!space.archived && <SpaceActions space={space} />}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface">

@@ -1,6 +1,6 @@
 import { Check, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useCreateSpace } from "../../api/queries";
+import { useArchivedSpaces, useCreateSpace, useSpaces } from "../../api/queries";
 import type { Space } from "../../api/types";
 import {
   inputClass,
@@ -51,6 +51,15 @@ export function NewSpaceDialog({ onClose, onCreated }: Props) {
 
   const key = customKey ?? suggestKey(name);
 
+  // Tell the user while they type, rather than after they press Create.
+  // The server checks again, so this is a convenience, not the rule itself.
+  const { data: active = [] } = useSpaces();
+  const { data: archived = [] } = useArchivedSpaces();
+  const twin = [...active, ...archived].find(
+    (s) => s.name.trim().toLowerCase() === name.trim().toLowerCase(),
+  );
+  const keyTaken = [...active, ...archived].find((s) => s.key === key);
+
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
@@ -92,6 +101,8 @@ export function NewSpaceDialog({ onClose, onCreated }: Props) {
               className={inputClass}
               value={name}
               placeholder="Spanish"
+              aria-invalid={!!twin}
+              aria-describedby={twin ? "name-taken" : undefined}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
@@ -108,6 +119,13 @@ export function NewSpaceDialog({ onClose, onCreated }: Props) {
             />
           </label>
         </div>
+        {(twin || keyTaken) && (
+          <p id="name-taken" role="alert" className="-mt-2 text-sm text-warn">
+            {twin
+              ? `${twin.archived ? "An archived space" : "A space"} is already named ${twin.name} (${twin.key})${twin.archived ? "; restore it from All spaces instead" : ""}.`
+              : `The key ${key} is already used by ${keyTaken!.name}.`}
+          </p>
+        )}
         <p className="-mt-2 text-sm text-ink-muted">
           Issues will be numbered {key || "KEY"}-1, {key || "KEY"}-2... The key cannot change later.
         </p>
@@ -151,7 +169,11 @@ export function NewSpaceDialog({ onClose, onCreated }: Props) {
           <button type="button" onClick={onClose} className={secondaryButton}>
             Cancel
           </button>
-          <button type="submit" disabled={create.isPending} className={primaryButton}>
+          <button
+            type="submit"
+            disabled={create.isPending || !!twin || !!keyTaken}
+            className={primaryButton}
+          >
             {create.isPending ? "Creating..." : "Create space"}
           </button>
         </div>

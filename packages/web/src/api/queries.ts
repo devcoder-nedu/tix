@@ -19,6 +19,7 @@ import type {
 
 export const queryKeys = {
   spaces: ["spaces"] as const,
+  archivedSpaces: ["spaces", "archived"] as const,
   space: (key: string) => ["spaces", key] as const,
   issues: (filter: IssueFilter = {}) => ["issues", filter] as const,
   issue: (key: string) => ["issue", key] as const,
@@ -38,6 +39,9 @@ export const queryKeys = {
 // ---- Reads
 
 export const useSpaces = () => useQuery({ queryKey: queryKeys.spaces, queryFn: api.listSpaces });
+
+export const useArchivedSpaces = () =>
+  useQuery({ queryKey: queryKeys.archivedSpaces, queryFn: api.listArchivedSpaces });
 
 export const useSpace = (key: string) =>
   useQuery({ queryKey: queryKeys.space(key), queryFn: () => api.getSpace(key) });
@@ -285,4 +289,22 @@ export function useCompleteSprint() {
       api.completeSprint(id, moves),
     onSuccess,
   });
+}
+
+// Archiving or deleting a space changes the sidebar, pickers, backlog and
+// plan, so these refresh everything.
+
+export function useArchiveSpace() {
+  const onSuccess = useInvalidateAll();
+  return useMutation({ mutationFn: (key: string) => api.archiveSpace(key), onSuccess });
+}
+
+export function useRestoreSpace() {
+  const onSuccess = useInvalidateAll();
+  return useMutation({ mutationFn: (key: string) => api.restoreSpace(key), onSuccess });
+}
+
+export function useDeleteSpace() {
+  const onSuccess = useInvalidateAll();
+  return useMutation({ mutationFn: (key: string) => api.deleteSpace(key), onSuccess });
 }

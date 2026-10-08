@@ -31,8 +31,15 @@ export interface IssueFilter {
 
 export interface TixApi {
   listSpaces(): Promise<SpaceSummary[]>;
+  listArchivedSpaces(): Promise<SpaceSummary[]>;
   getSpace(key: string): Promise<SpaceSummary>;
+  /** Names are unique, ignoring case (archived spaces included). */
   createSpace(input: Pick<Space, "key" | "name" | "color" | "description">): Promise<Space>;
+  /** Hide a space, keeping its issues and history; refused while it has open issues. */
+  archiveSpace(key: string): Promise<Space>;
+  restoreSpace(key: string): Promise<Space>;
+  /** Only for a space that never had issues. */
+  deleteSpace(key: string): Promise<void>;
 
   listIssues(filter?: IssueFilter): Promise<Issue[]>;
   getIssue(key: string): Promise<Issue>;

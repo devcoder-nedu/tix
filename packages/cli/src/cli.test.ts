@@ -73,6 +73,18 @@ describe("tix", () => {
     expect(tix("show", "FR-1").out).toContain("Old keys  FR-1");
   });
 
+  it("archives, restores and deletes spaces, and refuses duplicate names", () => {
+    tix("space", "add", "FR", "French");
+    expect(tix("space", "add", "FREN", "french")).toMatchObject({
+      err: "Error: A space named French already exists (FR)",
+      code: 1,
+    });
+    expect(tix("space", "archive", "FR").out).toContain("Archived FR (French)");
+    expect(tix("space", "list", "--archived").out).toContain("FR");
+    expect(tix("space", "restore", "FR").out).toBe("Restored FR (French)");
+    expect(tix("space", "delete", "FR").out).toBe("Deleted FR (French)");
+  });
+
   it("reports rule errors on stderr with exit code 1", () => {
     tix("seed");
     expect(tix("create", "-s", "CODE", "-t", "x", "--points", "4")).toMatchObject({
