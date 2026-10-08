@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Node code: no DOM, but Node's own APIs (fs, os, path).
+    "lib": ["ES2023"],
+    "types": ["node"],
+    // Node runs these .ts files directly by stripping the types, so imports
+    // name the real file ("./schema.ts") and nothing may need compiling
+    // (no enums, no namespaces): erasableSyntaxOnly turns those into errors.
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true
+  },
+  "include": ["src", "drizzle.config.ts"]
+}

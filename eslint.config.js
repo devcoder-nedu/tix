@@ -15,6 +15,14 @@ export default defineConfig([
     extends: [js.configs.recommended, tseslint.configs.recommended],
   },
 
+  // Core runs in Node: it may use process, and must not use window or document.
+  {
+    files: ["packages/core/**/*.ts"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+
   // Extra rules for the React app only.
   {
     files: ["packages/web/**/*.{ts,tsx}"],

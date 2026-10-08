@@ -12,7 +12,9 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @tix/core db:generate"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
