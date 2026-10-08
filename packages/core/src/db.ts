@@ -1,7 +1,8 @@
 // Opens the one SQLite file every part of Tix shares, and brings it up to date.
 
-import Database from "better-sqlite3";
+import Database, { type RunResult } from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -37,3 +38,9 @@ export function openDb(file: string = defaultDbPath()) {
 }
 
 export type TixDb = ReturnType<typeof openDb>;
+
+/**
+ * Either the database or a transaction on it. Helpers take a Conn so the same
+ * code runs alone or as one step of a bigger all-or-nothing change.
+ */
+export type Conn = BaseSQLiteDatabase<"sync", RunResult, typeof schema>;
