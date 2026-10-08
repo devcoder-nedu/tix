@@ -2,7 +2,7 @@
 // Each query is cached under a key; after a change we "invalidate" the keys it
 // affects, and every screen showing that data refetches automatically.
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type IssueFilter } from "./client";
 import type {
   BacklogItem,
@@ -26,6 +26,8 @@ export const queryKeys = {
   backlog: ["backlog"] as const,
   sprintItems: (sprintId: number) => ["sprintItems", sprintId] as const,
   velocity: ["velocity"] as const,
+  search: (text: string) => ["search", text] as const,
+  ollama: (url: string) => ["ollama", url] as const,
   sprintSummary: (id: number) => ["sprintSummary", id] as const,
   sprintResults: ["sprintResults"] as const,
   insight: (kind: string, sprintId: number) => ["insight", kind, sprintId] as const,
@@ -81,6 +83,23 @@ export const useInsight = (kind: Insight["kind"], sprintId: number) =>
   useQuery({
     queryKey: queryKeys.insight(kind, sprintId),
     queryFn: () => api.getInsight(kind, sprintId),
+  });
+
+export const useSearch = (text: string) =>
+  useQuery({
+    queryKey: queryKeys.search(text.trim().toLowerCase()),
+    queryFn: () => api.searchIssues(text),
+    enabled: text.trim().length > 0,
+    placeholderData: keepPreviousData, // keep showing the last results while typing
+  });
+
+/** Polled gently: the status shows in the sidebar on every page. */
+export const useOllamaStatus = (url: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.ollama(url ?? ""),
+    queryFn: () => api.checkOllama(url!),
+    enabled: !!url,
+    staleTime: 60_000,
   });
 
 export const useSettings = () =>

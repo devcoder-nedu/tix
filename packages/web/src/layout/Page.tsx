@@ -2,10 +2,10 @@
 // Create) plus a scrolling content area. Keeping the title here, instead of in
 // a global header, lets each page show data-driven titles like "FR-4".
 
-import { Moon, Plus, Search, Sun } from "lucide-react";
-import { useRef, type ReactNode } from "react";
+import { Moon, Plus, Sun } from "lucide-react";
+import type { ReactNode } from "react";
+import { SearchBox } from "../components/SearchBox";
 import { useCreateDialog } from "../create/CreateIssueContext";
-import { useShortcut } from "../lib/useShortcut";
 import { useTheme } from "../theme/ThemeProvider";
 
 interface PageProps {
@@ -17,8 +17,6 @@ interface PageProps {
 export function Page({ eyebrow, title, children }: PageProps) {
   const { theme, toggle } = useTheme();
   const createDialog = useCreateDialog();
-  const searchRef = useRef<HTMLInputElement>(null);
-  useShortcut("/", () => searchRef.current?.focus());
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
@@ -28,16 +26,7 @@ export function Page({ eyebrow, title, children }: PageProps) {
           <h1 className="truncate text-xl font-semibold">{title}</h1>
         </div>
 
-        <label className="flex w-64 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-ink-muted focus-within:border-accent">
-          <Search size={16} />
-          <input
-            ref={searchRef}
-            type="search"
-            placeholder="Search all spaces"
-            className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
-          />
-          <kbd className="rounded border border-line px-1.5 font-mono text-xs">/</kbd>
-        </label>
+        <SearchBox />
 
         <button
           onClick={toggle}

@@ -9,7 +9,8 @@ import { PlanPage } from "./pages/plan/PlanPage";
 import { SpaceDetailPage } from "./pages/spaces/SpaceDetailPage";
 import { PastSprintsPage } from "./pages/sprints/PastSprintsPage";
 import { SpacesPage } from "./pages/spaces/SpacesPage";
-import { InsightsSettingsPage, NotFoundPage } from "./pages/Placeholder";
+import { NotFoundPage } from "./pages/NotFoundPage";
+import { InsightsSettingsPage } from "./pages/settings/InsightsSettingsPage";
 
 export const router = createBrowserRouter([
   {

@@ -130,6 +130,12 @@ export interface Settings {
   insightPatternReport: boolean;
 }
 
+/** Whether the local model server answers, and which models it has pulled. */
+export interface OllamaStatus {
+  running: boolean;
+  models: string[];
+}
+
 // ---- Shapes the API returns that combine tables ----
 
 export interface SpaceSummary extends Space {

@@ -10,8 +10,8 @@ No accounts, no cloud, no paid APIs.
 
 | Part                              | State                     |
 | --------------------------------- | ------------------------- |
-| Front end: every tracker screen   | Working, on a fake API    |
-| Insights settings screen          | Placeholder               |
+| Front end: all ten screens        | Working, on a fake API    |
+| Ollama status and settings        | Working (live check)      |
 | Core services and SQLite database | Planned (`packages/core`) |
 | HTTP server, `tix` CLI            | Planned                   |
 | MCP server for an AI assistant    | Planned                   |
@@ -235,10 +235,18 @@ Create issue, New space and Complete sprint use the browser's `<dialog>` element
 `showModal()`, which provides Escape to close, focus kept inside and an inert page behind, with
 no extra library.
 
-### Keyboard
+### Search and keyboard
 
-`c` opens Create issue and `/` focuses search. Single key shortcuts are ignored while typing in
-a field.
+The top bar search is a combobox: type a key (`fr-1`), an old key from before a move, or words
+from a title, then use the arrow keys and Enter. Exact keys rank first, then key prefixes, then
+title matches. `c` opens Create issue and `/` focuses search. Single key shortcuts are ignored
+while typing in a field.
+
+### Local AI status
+
+The sidebar and the Insights settings screen ask Ollama (`/api/tags`) whether it is running and
+which models it has. Until the server exists the browser makes that call; Ollama accepts requests
+from localhost pages by default. "Local AI ready" means Ollama answers and has the chosen model.
 
 ## Extending Tix
 

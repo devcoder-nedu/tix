@@ -379,6 +379,31 @@ export const fakeApi: TixApi = {
     );
   },
 
+  async searchIssues(text) {
+    await delay();
+    const q = text.trim().toLowerCase();
+    if (!q) return [];
+    // Score: exact key, then key prefix (FR-1 finds FR-12), then title words.
+    const score = (i: Issue) => {
+      const keys = [i.key, ...i.previousKeys].map((k) => k.toLowerCase());
+      if (keys.includes(q)) return 0;
+      if (keys.some((k) => k.startsWith(q))) return 1;
+      if (i.title.toLowerCase().includes(q)) return 2;
+      return -1;
+    };
+    const matches = db.issues
+      .filter(live)
+      .map((issue) => ({ issue, s: score(issue) }))
+      .filter(({ s }) => s >= 0)
+      .sort(
+        (a, b) =>
+          a.s - b.s || (a.issue.status === "done" ? 1 : 0) - (b.issue.status === "done" ? 1 : 0),
+      )
+      .slice(0, 8)
+      .map(({ issue }) => issue);
+    return copy(matches);
+  },
+
   async listBacklog() {
     await delay();
     const items = db.issues
@@ -667,6 +692,21 @@ export const fakeApi: TixApi = {
     sprint.completedAt = nowIso();
     save();
     return copy(sprint);
+  },
+
+  async checkOllama(url) {
+    // No fake delay: this is a real call. The server will make it later; until
+    // then the browser asks Ollama directly (it accepts localhost pages by default).
+    try {
+      const response = await fetch(`${url.replace(/\/$/, "")}/api/tags`, {
+        signal: AbortSignal.timeout(2000),
+      });
+      if (!response.ok) return { running: false, models: [] };
+      const body = (await response.json()) as { models?: { name: string }[] };
+      return { running: true, models: (body.models ?? []).map((m) => m.name) };
+    } catch {
+      return { running: false, models: [] }; // not installed, not started, or wrong URL
+    }
   },
 
   async getSettings() {

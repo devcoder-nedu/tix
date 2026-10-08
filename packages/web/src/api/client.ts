@@ -11,6 +11,7 @@ import type {
   IssueEvent,
   IssuePatch,
   NewIssue,
+  OllamaStatus,
   RankPosition,
   Settings,
   Space,
@@ -42,6 +43,8 @@ export interface TixApi {
   /** New key in the target space; the old key stays as an alias. Subtasks move too. */
   moveIssueToSpace(key: string, spaceId: number): Promise<Issue>;
   listEvents(issueId: number): Promise<IssueEvent[]>;
+  /** Issues whose key, old key or title matches, best matches first. */
+  searchIssues(text: string): Promise<Issue[]>;
 
   /** Every open story/task/bug/spike with no sprint, in rank order. */
   listBacklog(): Promise<BacklogItem[]>;
@@ -72,6 +75,8 @@ export interface TixApi {
 
   getSettings(): Promise<Settings>;
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
+  /** Ask Ollama at `url` whether it is running and which models it has. */
+  checkOllama(url: string): Promise<OllamaStatus>;
 }
 
 export { ApiError } from "./errors";
